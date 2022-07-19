@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32630.192
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpotifyToYouTubeSync", "SpotifyToYouTubeSync.csproj", "{B385B856-A20E-4542-94CB-19B3A34F6B73}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B385B856-A20E-4542-94CB-19B3A34F6B73}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B385B856-A20E-4542-94CB-19B3A34F6B73}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B385B856-A20E-4542-94CB-19B3A34F6B73}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B385B856-A20E-4542-94CB-19B3A34F6B73}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C68CCA31-4AD6-4C60-A169-EF1F1175B12B}
+	EndGlobalSection
+EndGlobal
