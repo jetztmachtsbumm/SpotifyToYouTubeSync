@@ -65,58 +65,60 @@ namespace SpotifyToYouTubeSync
                 Console.WriteLine("Specify spotify-playlist in SpotifyPlaylist.ini");
                 return;
             }
-
-            //Delete old YT-playlist
-            if (File.Exists(applicationPath + "YTPlaylist.ini"))
-            {
-                Console.WriteLine("Deleting old YT-Playlist...");
-                string playlistID = File.ReadAllText(applicationPath + "YTPlaylist.ini");
-                await youtubeService.Playlists.Delete(playlistID).ExecuteAsync();
-                File.Delete(applicationPath + "YTPlaylist.ini");
-            }
-
-            
-            //Create a new YT-playlist
-            Console.WriteLine("Creating new YT-Playlist...");
-            var newPlaylist = new Playlist();
-            newPlaylist.Snippet = new PlaylistSnippet();
-            newPlaylist.Snippet.Title = "Test Playlist";
-            newPlaylist.Snippet.Description = "Test Description";
-            newPlaylist.Status = new PlaylistStatus();
-            newPlaylist.Status.PrivacyStatus = "public";
-            newPlaylist = await youtubeService.Playlists.Insert(newPlaylist, "snippet,status").ExecuteAsync();
-            File.WriteAllText(applicationPath + "YTPlaylist.ini", newPlaylist.Id);
-            
-
-            //Search video from spotify-playlist and add it to the YT-Playlist
             var playlist = await spotify.Playlists.Get(File.ReadAllText(applicationPath + "SpotifyPlaylist.ini"));
 
-            for(int i = 0; i < playlist.Tracks.Total / 100 + 2; i++)
+            //Create new YT-playlist if it doesn't exist yet, else get existing playlist
+            var newPlaylist = new Playlist();
+            newPlaylist.Snippet = new PlaylistSnippet();
+            newPlaylist.Snippet.Title = playlist.Name;
+            newPlaylist.Snippet.Description = playlist.Description;
+            newPlaylist.Status = new PlaylistStatus();
+            newPlaylist.Status.PrivacyStatus = "public";
+            if (!File.Exists(applicationPath + "YTPlaylist.ini"))
             {
-                Paging<PlaylistTrack<IPlayableItem>> playlistTracks = await spotify.Playlists.GetItems(playlist.Id, new PlaylistGetItemsRequest { Offset = i * 100 });
-                foreach (PlaylistTrack<IPlayableItem> item in playlistTracks.Items)
+                //Create a new YT-playlist
+                Console.WriteLine("Creating new YT-Playlist...");
+                newPlaylist = await youtubeService.Playlists.Insert(newPlaylist, "snippet,status").ExecuteAsync();
+                File.WriteAllText(applicationPath + "YTPlaylist.ini", newPlaylist.Id);
+            }
+            else
+            {
+                newPlaylist.Id = File.ReadAllText(applicationPath + "YTPlaylist.ini");
+            }
+
+            //Search video from spotify-playlist and add it to the YT-Playlist
+
+            if (!File.Exists(applicationPath + "offset.ini"))
+            {
+                File.WriteAllText(applicationPath + "offset.ini", "0");
+            }
+
+            int offset = int.Parse(File.ReadAllText(applicationPath + "Offset.ini"));
+            Paging<PlaylistTrack<IPlayableItem>> playlistTracks = await spotify.Playlists.GetItems(playlist.Id, new PlaylistGetItemsRequest { Offset = offset });
+            foreach (PlaylistTrack<IPlayableItem> item in playlistTracks.Items)
+            {
+                if (item.Track is FullTrack track)
                 {
-                    if (item.Track is FullTrack track)
+                    string trackName = track.Artists[0].Name + " - " + track.Name;
+                    Console.WriteLine("Moving: " + trackName + "...");
+
+                    var searchListRequest = youtubeService.Search.List("snippet");
+                    searchListRequest.Q = trackName;
+                    searchListRequest.MaxResults = 1;
+
+                    var searchListResponse = await searchListRequest.ExecuteAsync();
+
+                    if (searchListResponse.Items[0].Id.Kind.Equals("youtube#video"))
                     {
-                        string trackName = track.Artists[0].Name + " - " + track.Name;
-                        Console.WriteLine("Adding: " + trackName + "...");
-
-                        var searchListRequest = youtubeService.Search.List("snippet");
-                        searchListRequest.Q = trackName;
-                        searchListRequest.MaxResults = 1;
-
-                        var searchListResponse = await searchListRequest.ExecuteAsync();
-
-                        if (searchListResponse.Items[0].Id.Kind.Equals("youtube#video"))
-                        {
-                            var newPlaylistItem = new PlaylistItem();
-                            newPlaylistItem.Snippet = new PlaylistItemSnippet();
-                            newPlaylistItem.Snippet.PlaylistId = newPlaylist.Id;
-                            newPlaylistItem.Snippet.ResourceId = new ResourceId();
-                            newPlaylistItem.Snippet.ResourceId.Kind = "youtube#video";
-                            newPlaylistItem.Snippet.ResourceId.VideoId = searchListResponse.Items[0].Id.VideoId;
-                            newPlaylistItem = await youtubeService.PlaylistItems.Insert(newPlaylistItem, "snippet").ExecuteAsync();
-                        }
+                        var newPlaylistItem = new PlaylistItem();
+                        newPlaylistItem.Snippet = new PlaylistItemSnippet();
+                        newPlaylistItem.Snippet.PlaylistId = newPlaylist.Id;
+                        newPlaylistItem.Snippet.ResourceId = new ResourceId();
+                        newPlaylistItem.Snippet.ResourceId.Kind = "youtube#video";
+                        newPlaylistItem.Snippet.ResourceId.VideoId = searchListResponse.Items[0].Id.VideoId;
+                        await youtubeService.PlaylistItems.Insert(newPlaylistItem, "snippet").ExecuteAsync();
+                        offset++;
+                        File.WriteAllText(applicationPath + "offset.ini", "" + offset);
                     }
                 }
             }
