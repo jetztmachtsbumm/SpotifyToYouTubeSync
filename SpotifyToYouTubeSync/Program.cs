@@ -16,8 +16,6 @@ namespace SpotifyToYouTubeSync
             try
             {
                 new Program().Run().Wait();
-                Console.WriteLine("Press any key to continue...");
-                Console.ReadKey();
             }
             catch (AggregateException ex)
             {
@@ -100,7 +98,7 @@ namespace SpotifyToYouTubeSync
                 if (item.Track is FullTrack track)
                 {
                     string trackName = track.Artists[0].Name + " - " + track.Name;
-                    Console.WriteLine("Moving: " + trackName + "...");
+                    Console.WriteLine("Moving: " + (offset + 1) + ". " + trackName + "...");
 
                     var searchListRequest = youtubeService.Search.List("snippet");
                     searchListRequest.Q = trackName;
